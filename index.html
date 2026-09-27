@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go Wellness - Gestão de Treinos & Performance</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            bg: '#f8fafc',
+                            card: '#ffffff',
+                            border: '#e2e8f0',
+                            neon: '#10b981',
+                            glow: 'rgba(16, 185, 129, 0.1)'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col bg-slate-50 text-slate-800 relative selection:bg-emerald-500 selection:text-white">
+    
+    <!-- TOP NAVBAR -->
+    <header class="h-16 border-b border-slate-200 bg-white/80 backdrop-blur-xl px-4 md:px-6 flex items-center justify-between shrink-0 z-20 shadow-sm">
+        <div class="flex items-center space-x-3">
+            <button onclick="toggleSidebar()" class="p-2.5 text-slate-600 hover:text-emerald-600 hover:bg-slate-100 rounded-xl transition flex items-center justify-center focus:outline-none">
+                <i class="fa-solid fa-bars-staggered text-lg"></i>
+            </button>
+            <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-black text-lg shadow-md shadow-emerald-500/20">
+                    GW
+                </div>
+                <div>
+                    <h1 class="font-bold text-sm sm:text-base leading-tight tracking-wider text-slate-900">
+                        GO <span class="text-emerald-600 font-extrabold">WELLNESS</span>
+                    </h1>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2">
+            <button onclick="openModal('modalCalendario')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-semibold px-3.5 py-2 rounded-xl text-xs sm:text-sm flex items-center space-x-2 transition shadow-sm">
+                <i class="fa-solid fa-calendar-days text-emerald-600"></i>
+                <span class="hidden xs:inline">Calendário</span>
+            </button>
+            <button onclick="openModal('modalNovoTreino')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold px-3.5 py-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm flex items-center space-x-2 shadow-lg shadow-emerald-600/20 transition active:scale-95">
+                <i class="fa-solid fa-plus text-xs"></i>
+                <span>Novo Treino</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- SIDEBAR DRAWER -->
+    <div id="drawerBackdrop" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden transition-opacity"></div>
+    <aside id="sidebarDrawer" class="fixed top-0 left-0 h-full w-72 bg-white border-r border-slate-200 z-50 transform -translate-x-full transition-transform duration-300 ease-in-out flex flex-col justify-between shadow-2xl">
+        <div>
+            <div class="p-5 border-b border-slate-200 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-black text-xl shadow-md shadow-emerald-500/20">
+                        GW
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-sm text-slate-900">Painel do Coach</h2>
+                        <p class="text-[11px] text-emerald-600 font-mono font-medium">Online & Sincronizado</p>
+                    </div>
+                </div>
+                <button onclick="toggleSidebar()" class="text-slate-400 hover:text-slate-700 p-2 rounded-lg hover:bg-slate-100">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <nav class="p-3 space-y-1.5">
+                <button onclick="switchTab('dashboard'); toggleSidebar()" id="nav-dashboard" class="nav-btn active w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">
+                    <i class="fa-solid fa-chart-line text-base w-6 text-emerald-600"></i>
+                    <span class="text-sm">Treinos do Dia</span>
+                </button>
+                <button onclick="switchTab('alunos'); toggleSidebar()" id="nav-alunos" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">
+                    <i class="fa-solid fa-users-rectangle text-base w-6 text-teal-600"></i>
+                    <span class="text-sm">Meus Alunos</span>
+                </button>
+            </nav>
+        </div>
+        <div class="p-4 border-t border-slate-200 bg-slate-50 space-y-2.5">
+            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Sistemas & Dados</div>
+            <button onclick="exportDataJSON()" class="w-full flex items-center justify-center space-x-2 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold py-2.5 px-3 rounded-xl border border-slate-200 transition shadow-sm">
+                <i class="fa-solid fa-cloud-arrow-down text-emerald-600"></i>
+                <span>Exportar Backup (.json)</span>
+            </button>
+            <label class="w-full flex items-center justify-center space-x-2 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold py-2.5 px-3 rounded-xl border border-slate-200 transition cursor-pointer shadow-sm">
+                <i class="fa-solid fa-cloud-arrow-up text-teal-600"></i>
+                <span>Importar Backup (.json)</span>
+                <input type="file" id="importJsonInput" accept=".json" onchange="importDataJSON(event)" class="hidden">
+            </label>
+            <button onclick="resetToDefaultData()" class="w-full text-left px-2 py-1 text-[11px] text-slate-400 hover:text-red-500 transition flex items-center justify-between">
+                <span>Restaurar dados padrão</span>
+                <i class="fa-solid fa-rotate-left"></i>
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden relative">
+        <section id="tab-dashboard" class="flex-1 flex flex-col overflow-hidden">
+            <!-- Subbar data selector -->
+            <div class="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shrink-0 shadow-xs">
+                <div class="flex items-center space-x-2">
+                    <button onclick="shiftSelectedDate(-1)" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition">
+                        <i class="fa-solid fa-chevron-left text-xs"></i>
+                    </button>
+                    <div class="flex items-center space-x-2 cursor-pointer px-2 py-1 rounded-lg hover:bg-slate-100 transition" onclick="openModal('modalCalendario')">
+                        <span id="displaySelectedDate" class="text-sm sm:text-base font-bold text-slate-900 capitalize tracking-wide"></span>
+                        <i class="fa-solid fa-chevron-down text-[10px] text-emerald-600"></i>
+                    </div>
+                    <button onclick="shiftSelectedDate(1)" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition">
+                        <i class="fa-solid fa-chevron-right text-xs"></i>
+                    </button>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="goToToday()" class="px-3 py-1.5 text-xs font-semibold bg-white text-emerald-600 hover:bg-emerald-50 rounded-xl border border-slate-200 transition shadow-sm">
+                        Hoje
+                    </button>
+                </div>
+            </div>
+
+            <!-- Alunos horizontal tabs -->
+            <div class="p-4 bg-slate-100/70 border-b border-slate-200 shrink-0">
+                <div class="flex items-center justify-between mb-2.5">
+                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center space-x-1.5">
+                        <i class="fa-solid fa-user-group text-emerald-600"></i>
+                        <span>Atendimentos do Dia</span>
+                    </span>
+                    <span id="studentsCountBadge" class="text-[11px] font-mono font-semibold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2.5 py-0.5 rounded-full">0 Alunos</span>
+                </div>
+                <div id="studentsHeaderTabs" class="flex items-center space-x-3 overflow-x-auto pb-1 scrollbar-none flex-nowrap"></div>
+            </div>
+
+            <!-- Workout detail content area -->
+            <div id="workoutDetailContent" class="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50"></div>
+        </section>
+
+        <!-- ALUNOS TAB -->
+        <section id="tab-alunos" class="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50 hidden">
+            <div class="max-w-6xl mx-auto space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-xl font-extrabold text-slate-900 tracking-tight">Base de Alunos</h3>
+                        <p class="text-xs text-slate-500">Gerenciamento de perfis, restrições e criação de treinos</p>
+                    </div>
+                    <button onclick="openModal('modalNovoAluno')" class="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold px-4 py-2.5 rounded-xl text-xs sm:text-sm flex items-center space-x-2 transition shadow-sm">
+                        <i class="fa-solid fa-user-plus text-emerald-600"></i>
+                        <span>Novo Aluno</span>
+                    </button>
+                </div>
+                <div id="alunosGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- MODAL CALENDÁRIO -->
+    <div id="modalCalendario" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-5 shadow-2xl flex flex-col space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-calendar-days text-emerald-600"></i>
+                    <h3 class="font-bold text-slate-900 text-base">Selecionar Data</h3>
+                </div>
+                <button onclick="closeModal('modalCalendario')" class="text-slate-400 hover:text-slate-700 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="flex items-center justify-between">
+                <h4 id="calendarMonthLabel" class="font-bold text-slate-800 text-sm capitalize"></h4>
+                <div class="flex items-center space-x-1">
+                    <button onclick="changeCalendarMonth(-1)" class="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition">
+                        <i class="fa-solid fa-chevron-left text-xs"></i>
+                    </button>
+                    <button onclick="goToToday()" class="px-2.5 py-1 text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg border border-slate-200 transition">
+                        Hoje
+                    </button>
+                    <button onclick="changeCalendarMonth(1)" class="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition">
+                        <i class="fa-solid fa-chevron-right text-xs"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="grid grid-cols-7 text-center text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
+            </div>
+            <div id="calendarGrid" class="grid grid-cols-7 gap-1 text-sm"></div>
+        </div>
+    </div>
+
+    <!-- MODAL NOVO TREINO GERAL -->
+    <div id="modalNovoTreino" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+                    <i class="fa-solid fa-dumbbell text-emerald-600"></i>
+                    <span>Agendar Sessão de Treino</span>
+                </h3>
+                <button onclick="closeModal('modalNovoTreino')" class="text-slate-400 hover:text-slate-700 p-2">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <form id="formNovoTreino" onsubmit="handleSalvarTreino(event)" class="p-5 flex-1 overflow-y-auto space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Aluno *</label>
+                        <select id="treinoAlunoSelect" required onchange="onTreinoAlunoChange()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 text-sm focus:outline-none focus:border-emerald-500"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Dia da Semana (Ativo) *</label>
+                        <select id="treinoDiaSemana" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 text-sm focus:outline-none focus:border-emerald-500">
+                            <option value="" disabled selected>Selecione um dia ativo...</option>
+                        </select>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Foco / Tipo de Treino *</label>
+                        <input type="text" id="treinoTipo" placeholder="Ex: Membros Inferiores & Core" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 text-sm focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+                <div class="pt-2 border-t border-slate-100">
+                    <div class="flex items-center justify-between mb-3">
+                        <label class="text-xs font-bold text-slate-700 uppercase tracking-wider">Exercícios Programados</label>
+                        <button type="button" onclick="addExerciciosRow('exerciciosBuilderList')" class="text-xs text-emerald-600 font-semibold hover:underline flex items-center space-x-1">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Adicionar Linha</span>
+                        </button>
+                    </div>
+                    <div id="exerciciosBuilderList" class="space-y-2.5"></div>
+                </div>
+                <div class="pt-4 border-t border-slate-100 flex justify-end space-x-3">
+                    <button type="button" onclick="closeModal('modalNovoTreino')" class="px-4 py-2.5 text-slate-500 hover:text-slate-800 text-xs font-semibold">Cancelar</button>
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition shadow-lg shadow-emerald-600/20">Salvar Treino</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL EXERCÍCIO RÁPIDO -->
+    <div id="modalAddExercioRapido" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+                    <i class="fa-solid fa-circle-plus text-emerald-600"></i>
+                    <span>Adicionar Exercício</span>
+                </h3>
+                <button onclick="closeModal('modalAddExercioRapido')" class="text-slate-400 hover:text-slate-700 p-2">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <form id="formAddExercicioRapido" onsubmit="handleSalvarExercicioRapido(event)" class="p-5 space-y-4">
+                <input type="hidden" id="rapidoWorkoutId">
+                <input type="hidden" id="rapidoAlunoId">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Nome do Exercício *</label>
+                    <input type="text" id="rapidoNome" required placeholder="Ex: Leg Press 45°" oninput="autoCheckPreviousWeight(this.value)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 text-sm focus:outline-none focus:border-emerald-500">
+                    <div id="rapidoHistoryBadge" class="text-[11px] text-emerald-600 font-medium mt-1.5 hidden flex items-center space-x-1">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                        <span id="rapidoHistoryText"></span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Séries</label>
+                        <input type="number" id="rapidoSeries" value="3" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 text-sm text-center focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Repetições</label>
+                        <input type="text" id="rapidoReps" value="12" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 text-sm text-center focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Carga (kg)</label>
+                        <input type="number" id="rapidoCarga" value="20" step="0.5" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 text-sm text-center font-mono font-bold text-emerald-600 focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Observações</label>
+                    <input type="text" id="rapidoObs" placeholder="Ex: Cadência 3:1" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 text-sm focus:outline-none focus:border-emerald-500">
+                </div>
+                <div class="pt-4 border-t border-slate-100 flex justify-end space-x-3">
+                    <button type="button" onclick="closeModal('modalAddExercioRapido')" class="px-4 py-2.5 text-slate-500 hover:text-slate-800 text-xs font-semibold">Cancelar</button>
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition">Inserir Exercício</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL NOVO ALUNO -->
+    <div id="modalNovoAluno" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+                    <i class="fa-solid fa-user-plus text-emerald-600"></i>
+                    <span>Cadastrar Aluno</span>
+                </h3>
+                <button onclick="closeModal('modalNovoAluno')" class="text-slate-400 hover:text-slate-700 p-2">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <form id="formNovoAluno" onsubmit="handleSalvarAluno(event)" class="p-5 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Nome Completo *</label>
+                    <input type="text" id="alunoNome" required placeholder="Ex: Juliana Mendes" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 text-sm focus:outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Objetivo *</label>
+                    <input type="text" id="alunoObjetivo" required placeholder="Ex: Hipertrofia & Condicionamento" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 text-sm focus:outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Restrições / Observações Clínicas</label>
+                    <textarea id="alunoObs" rows="2" placeholder="Ex: Leve desconforto lombar em agachamentos livres" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 text-sm focus:outline-none focus:border-emerald-500"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">URL da Foto (Opcional)</label>
+                    <input type="url" id="alunoFoto" placeholder="https://..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 text-sm focus:outline-none focus:border-emerald-500">
+                </div>
+                <div class="pt-4 border-t border-slate-100 flex justify-end space-x-3">
+                    <button type="button" onclick="closeModal('modalNovoAluno')" class="px-4 py-2.5 text-slate-500 hover:text-slate-800 text-xs font-semibold">Cancelar</button>
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition">Salvar Aluno</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL PERFIL DO ALUNO COM 2 ABAS -->
+    <div id="modalEditarAluno" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl max-h-[95vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center shrink-0">
+                <h3 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+                    <i class="fa-solid fa-user-gear text-emerald-600"></i>
+                    <span>Perfil do Aluno: <span id="modalAlunoNomeTitulo" class="text-emerald-600 font-extrabold"></span></span>
+                </h3>
+                <button onclick="closeModal('modalEditarAluno')" class="text-slate-400 hover:text-slate-700 p-2">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="flex border-b border-slate-200 bg-slate-50/80 px-5 shrink-0 overflow-x-auto">
+                <button type="button" onclick="switchAlunoModalTab('info')" id="btnTabAlunoInfo" class="py-3 px-4 text-xs font-bold border-b-2 border-emerald-600 text-emerald-600 transition flex items-center space-x-2 whitespace-nowrap">
+                    <i class="fa-solid fa-address-card"></i>
+                    <span>Informações & Agenda</span>
+                </button>
+                <button type="button" onclick="switchAlunoModalTab('treinos')" id="btnTabAlunoTreinos" class="py-3 px-4 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition flex items-center space-x-2 whitespace-nowrap">
+                    <i class="fa-solid fa-dumbbell"></i>
+                    <span>Criar / Gerenciar Treinos</span>
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-5">
+                <div id="alunoTabInfoContent" class="space-y-4">
+                    <form id="formEditarAlunoInfo" onsubmit="handleSalvarEdicaoAlunoInfo(event)" class="space-y-4">
+                        <input type="hidden" id="editAlunoId">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1">Nome Completo *</label>
+                                <input type="text" id="editAlunoNome" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:border-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1">Objetivo *</label>
+                                <input type="text" id="editAlunoObjetivo" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:border-emerald-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Restrições / Observações Clínicas</label>
+                            <textarea id="editAlunoObs" rows="2" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:border-emerald-500"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">URL da Foto</label>
+                            <input type="url" id="editAlunoFoto" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:border-emerald-500">
+                        </div>
+
+                        <div class="pt-3 border-t border-slate-100 space-y-3">
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Dias e Horários Fixos na Semana</h4>
+                                <p class="text-[11px] text-slate-400">Selecione os dias em que o aluno treina e defina o horário padrão.</p>
+                            </div>
+                            <div class="space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                                <div class="flex items-center justify-between py-1 border-b border-slate-200/60">
+                                    <label class="flex items-center space-x-2 text-xs font-semibold text-slate-700 cursor-pointer">
+                                        <input type="checkbox" value="1" class="dia-check accent-emerald-600 w-4 h-4 rounded" onchange="toggleDiaHorarioInput(this)">
+                                        <span>Segunda-feira</span>
+                                    </label>
+                                    <input type="time" id="horario_dia_1" value="08:00" class="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-800 font-mono disabled:opacity-40" disabled>
+                                </div>
+                                <div class="flex items-center justify-between py-1 border-b border-slate-200/60">
+                                    <label class="flex items-center space-x-2 text-xs font-semibold text-slate-700 cursor-pointer">
+                                        <input type="checkbox" value="2" class="dia-check accent-emerald-600 w-4 h-4 rounded" onchange="toggleDiaHorarioInput(this)">
+                                        <span>Terça-feira</span>
+                                    </label>
+                                    <input type="time" id="horario_dia_2" value="08:00" class="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-800 font-mono disabled:opacity-40" disabled>
+                                </div>
+                                <div class="flex items-center justify-between py-1 border-b border-slate-200/60">
+                                    <label class="flex items-center space-x-2 text-xs font-semibold text-slate-700 cursor-pointer">
+                                        <input type="checkbox" value="3" class="dia-check accent-emerald-600 w-4 h-4 rounded" onchange="toggleDiaHorarioInput(this)">
+                                        <span>Quarta-feira</span>
+                                    </label>
+                                    <input type="time" id="horario_dia_3" value="08:00" class="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-800 font-mono disabled:opacity-40" disabled>
+                                </div>
+                                <div class="flex items-center justify-between py-1 border-b border-slate-200/60">
+                                    <label class="flex items-center space-x-2 text-xs font-semibold text-slate-700 cursor-pointer">
+                                        <input type="checkbox" value="4" class="dia-check accent-emerald-600 w-4 h-4 rounded" onchange="toggleDiaHorarioInput(this)">
+                                        <span>Quinta-feira</span>
+                                    </label>
+                                    <input type="time" id="horario_dia_4" value="08:00" class="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-800 font-mono disabled:opacity-40" disabled>
+                                </div>
+                                <div class="flex items-center justify-between py-1 border-b border-slate-200/60">
+                                    <label class="flex items-center space-x-2 text-xs font-semibold text-slate-700 cursor-pointer">
+                                        <input type="checkbox" value="5" class="dia-check accent-emerald-600 w-4 h-4 rounded" onchange="toggleDiaHorarioInput(this)">
+                                        <span>Sexta-feira</span>
+                                    </label>
+                                    <input type="time" id="horario_dia_5" value="08:00" class="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-800 font-mono disabled:opacity-40" disabled>
+                                </div>
+                                <div class="flex items-center justify-between py-1 border-b border-slate-200/60">
+                                    <label class="flex items-center space-x-2 text-xs font-semibold text-slate-700 cursor-pointer">
+                                        <input type="checkbox" value="6" class="dia-check accent-emerald-600 w-4 h-4 rounded" onchange="toggleDiaHorarioInput(this)">
+                                        <span>Sábado</span>
+                                    </label>
+                                    <input type="time" id="horario_dia_6" value="09:00" class="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-800 font-mono disabled:opacity-40" disabled>
+                                </div>
+                                <div class="flex items-center justify-between py-1">
+                                    <label class="flex items-center space-x-2 text-xs font-semibold text-slate-700 cursor-pointer">
+                                        <input type="checkbox" value="0" class="dia-check accent-emerald-600 w-4 h-4 rounded" onchange="toggleDiaHorarioInput(this)">
+                                        <span>Domingo</span>
+                                    </label>
+                                    <input type="time" id="horario_dia_0" value="09:00" class="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-800 font-mono disabled:opacity-40" disabled>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-slate-100 flex justify-end space-x-3">
+                            <button type="button" onclick="closeModal('modalEditarAluno')" class="px-4 py-2.5 text-slate-500 hover:text-slate-800 text-xs font-semibold">Cancelar</button>
+                            <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition">Salvar Alterações</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div id="alunoTabTreinosContent" class="space-y-5 hidden">
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center space-x-2">
+                            <i class="fa-solid fa-plus-circle text-emerald-600"></i>
+                            <span>Atribuir Novo Treino ao Aluno</span>
+                        </h4>
+                        <form id="formCriarTreinoNoPerfil" onsubmit="handleSalvarTreinoDoPerfil(event)" class="space-y-3">
+                            <div>
+                                <label class="block text-[11px] font-semibold text-slate-500 mb-1">Dia da Semana (Ativo) *</label>
+                                <select id="perfilTreinoDiaSemana" required class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-800 text-xs focus:outline-none focus:border-emerald-500">
+                                    <option value="" disabled selected>Selecione um dia ativo do aluno...</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-semibold text-slate-500 mb-1">Foco / Tipo de Treino *</label>
+                                <input type="text" id="perfilTreinoTipo" placeholder="Ex: Membros Superiores & Core" required class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-800 text-xs focus:outline-none focus:border-emerald-500">
+                            </div>
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="text-[11px] font-bold text-slate-700 uppercase">Exercícios</label>
+                                    <button type="button" onclick="addExerciciosRow('perfilExerciciosBuilderList')" class="text-[11px] text-emerald-600 font-semibold hover:underline flex items-center space-x-1">
+                                        <i class="fa-solid fa-plus"></i>
+                                        <span>Adicionar Linha</span>
+                                    </button>
+                                </div>
+                                <div id="perfilExerciciosBuilderList" class="space-y-2"></div>
+                            </div>
+                            <div class="flex justify-end pt-2">
+                                <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition shadow-sm">
+                                    Salvar Treino do Aluno
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="space-y-2 pt-2 border-t border-slate-100">
+                        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Histórico de Treinos Atribuídos</h4>
+                        <div id="perfilTreinosListContainer" class="space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DETALHES DO TREINO -->
+    <div id="modalDetalhesTreinoHistorico" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+                    <i class="fa-solid fa-file-lines text-emerald-600"></i>
+                    <span>Detalhes do Treino Atribuído</span>
+                </h3>
+                <button onclick="closeModal('modalDetalhesTreinoHistorico')" class="text-slate-400 hover:text-slate-700 p-2">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-5 overflow-y-auto space-y-4 flex-1" id="corpoDetalhesTreinoHistorico"></div>
+            <div class="p-4 border-t border-slate-100 flex justify-end">
+                <button type="button" onclick="closeModal('modalDetalhesTreinoHistorico')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-4 py-2 rounded-xl text-xs transition">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <!-- 1. Biblioteca oficial do Supabase via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- 2. Seu script principal -->
+    <script src="script.js"></script>
+</body>
+</html>

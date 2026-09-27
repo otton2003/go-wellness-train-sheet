@@ -83,28 +83,32 @@ window.addEventListener('DOMContentLoaded', () => {
 
 async function loadAppData() {
     try {
-        // Busca os alunos na tabela do Supabase
+        // Busca todos os alunos (que já contêm a coluna 'treinos' em JSONB)
         const { data: alunosData, error: alunosError } = await supabaseClientInstance
             .from('alunos')
             .select('*');
 
         if (alunosError) throw alunosError;
 
-        // Busca os treinos na tabela do Supabase
-        const { data: treinosData, error: treinosError } = await supabaseClientInstance
-            .from('treinos')
-            .select('*');
+        // Extrai e consolida todos os treinos de dentro do JSON de cada aluno
+        let todosTreinos = [];
+        if (alunosData) {
+            alunosData.forEach(aluno => {
+                if (aluno.treinos && typeof aluno.treinos === 'object') {
+                    // Se estiver guardado como um objeto ou array de treinos
+                    const treinosAluno = Array.isArray(aluno.treinos) ? aluno.treinos : Object.values(aluno.treinos);
+                    todosTreinos = todosTreinos.concat(treinosAluno);
+                }
+            });
+        }
 
-        if (treinosError) throw treinosError;
-
-        // Atribui os dados reais do banco à variável global da aplicação
         appData = {
             personal: {
                 nome: "Go Wellness Engine",
                 titulo: "Studio & Performance"
             },
             alunos: alunosData || [],
-            treinos: treinosData || []
+            treinos: todosTreinos
         };
 
     } catch (err) {
@@ -113,6 +117,25 @@ async function loadAppData() {
         appData = getDefaultData();
     }
     renderAll();
+}
+
+async function persistirTreinosAlunoNoSupabase(alunoId) {
+    const aluno = appData.alunos.find(a => a.id === alunoId);
+    if (!aluno) return;
+
+    // Filtra todos os treinos pertencentes a este aluno
+    const treinosDoAluno = appData.treinos.filter(t => t.alunoId === alunoId);
+    aluno.treinos = treinosDoAluno;
+
+    const { error } = await supabaseClientInstance
+        .from('alunos')
+        .update({ treinos: treinosDoAluno })
+        .eq('id', alunoId);
+
+    if (error) {
+        console.error("Erro ao salvar treinos no Supabase:", error.message);
+        showToast("Erro ao sincronizar treino com o banco.", "error");
+    }
 }
 
 async function saveAppData() {
@@ -842,7 +865,8 @@ async function handleSalvarTreinoDoPerfil(event) {
     };
 
     appData.treinos.push(novoTreino);
-    await saveAppData();
+    await persistirTreinosAlunoNoSupabase(currentEditingAlunoId);
+
     document.getElementById('formCriarTreinoNoPerfil').reset();
     document.getElementById('perfilExerciciosBuilderList').innerHTML = '';
     addExerciciosRow('perfilExerciciosBuilderList');
@@ -991,6 +1015,7 @@ async function handleSalvarTreino(event) {
     }));
 
     const novoTreino = {
+        id: 't_' + Date.now(),
         alunoId,
         data: dataCalculada,
         horario,
@@ -999,27 +1024,15 @@ async function handleSalvarTreino(event) {
         exercicios
     };
 
-    const { data, error } = await supabaseClientInstance
-        .from('treinos')
-        .insert([novoTreino])
-        .select();
-
-    if (error) {
-        console.error('Erro ao salvar treino no Supabase:', error.message);
-        showToast('Erro ao salvar treino: ' + error.message, 'error');
-        return;
-    }
-
-    if (data && data.length > 0) {
-        appData.treinos.push(data[0]);
-    }
+    appData.treinos.push(novoTreino);
+    await persistirTreinosAlunoNoSupabase(alunoId);
 
     document.getElementById('exerciciosBuilderList').innerHTML = '';
     closeModal('modalNovoTreino');
     currentDateSelected = dataCalculada;
     selectedStudentIdForDay = alunoId;
     renderAll();
-    showToast('Treino agendado no Supabase com sucesso!', 'success');
+    showToast('Treino agendado com sucesso!', 'success');
 }
 
 async function handleSalvarAluno(event) {

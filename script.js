@@ -1,3 +1,4 @@
+HEAD
 const STORAGE_KEY = 'GO_WELLNESS_APP_DATA_V3_3';
 
 // Credenciais do Supabase (Verifique se o URL do projeto está exatamente correto no painel do Supabase)

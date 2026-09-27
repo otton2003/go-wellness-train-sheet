@@ -5,6 +5,13 @@ body {
     -webkit-tap-highlight-color: transparent;
 }
 
+html, body {
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto; /* Garante que o scroll vertical está sempre ativo */
+    -webkit-overflow-scrolling: touch; /* Melhora a fluidez do scroll no iOS */
+}
+
 ::-webkit-scrollbar {
     width: 5px;
     height: 5px;

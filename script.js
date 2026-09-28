@@ -82,36 +82,52 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 async function loadAppData() {
+    // 1. Tenta carregar primeiro do localStorage para garantir velocidade instantânea (Zero tela em branco)
     try {
-        // Busca alunos
-        const { data: alunosData, error: alunosError } = await supabaseClientInstance
-            .from('alunos')
-            .select('*');
+        const cached = localStorage.getItem(STORAGE_KEY);
+        if (cached) {
+            appData = JSON.parse(cached);
+            renderAll(); // Renderiza imediatamente com os dados locais
+        }
+    } catch (e) {
+        console.warn("Aviso ao carregar cache local:", e);
+    }
 
-        if (alunosError) throw alunosError;
-
-        // Busca treinos diretamente da tabela 'treinos'
-        const { data: treinosData, error: treinosError } = await supabaseClientInstance
-            .from('treinos')
-            .select('*');
-
-        if (treinosError) throw treinosError;
-
-        appData = {
-            personal: {
-                nome: "Go Wellness Engine",
-                titulo: "Studio & Performance"
-            },
-            alunos: alunosData || [],
-            treinos: treinosData || []
-        };
-
-    } catch (err) {
-        console.error("Erro ao carregar dados do Supabase:", err.message);
-        showToast("Erro ao sincronizar com o Supabase.", "error");
+    // Se ainda não tivermos appData, inicializa com o padrão
+    if (!appData) {
         appData = getDefaultData();
     }
-    renderAll();
+
+    // 2. Sincroniza em segundo plano com o Supabase sem bloquear a UI
+    if (!supabaseClientInstance) {
+        console.warn("Supabase não inicializado. A usar apenas dados locais.");
+        return;
+    }
+
+    try {
+        // Busca alunos e treinos em paralelo para maior velocidade
+        const [alunosRes, treinosRes] = await Promise.all([
+            supabaseClientInstance.from('alunos').select('*'),
+            supabaseClientInstance.from('treinos').select('*')
+        ]);
+
+        if (alunosRes.error) throw alunosRes.error;
+        if (treinosRes.error) throw treinosRes.error;
+
+        // Atualiza com os dados frescos do Supabase
+        appData.alunos = alunosRes.data || [];
+        appData.treinos = treinosRes.data || [];
+
+        // Guarda no localStorage atualizado
+        await saveAppData();
+        
+        // Re-renderiza com os dados mais recentes do servidor
+        renderAll();
+
+    } catch (err) {
+        console.warn("Aviso: Falha temporária ao sincronizar com o Supabase. A usar dados locais.", err.message);
+        // Não exibe toast de erro invasivo para evitar alarme falso em quedas rápidas de internet
+    }
 }
 
 async function persistirTreinosAlunoNoSupabase(alunoId) {

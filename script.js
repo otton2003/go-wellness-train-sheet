@@ -1148,3 +1148,38 @@ window.shiftSelectedDate = function(deltaDays) {
     selectedStudentIdForDay = null;
     renderAll();
 };
+
+// ==========================================
+// EXPOSIÇÃO GLOBAL DE FUNÇÕES PARA OS BOTÕES HTML
+// ==========================================
+window.shiftSelectedDate = function(deltaDays) {
+    const [y, m, d] = currentDateSelected.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    dateObj.setDate(dateObj.getDate() + deltaDays);
+    currentDateSelected = formatDateToKey(dateObj);
+    selectedStudentIdForDay = null;
+    renderAll();
+};
+
+window.selectStudentTab = function(alunoId) {
+    selectedStudentIdForDay = alunoId;
+    renderStudentHeaderTabs();
+    renderSelectedStudentWorkout();
+};
+
+window.toggleWorkoutComplete = toggleWorkoutComplete;
+window.toggleExerciseCheck = toggleExerciseCheck;
+window.updateCarga = updateCarga;
+window.removeExercicioFromWorkout = removeExercicioFromWorkout;
+window.openModalAddExercicioRapido = openModalAddExercicioRapido;
+window.deletarTreino = deletarTreino;
+window.openEditarAluno = openEditarAluno;
+window.deletarAluno = deletarAluno;
+window.abrirDetalhesTreinoHistorico = abrirDetalhesTreinoHistorico;
+window.deletarTreinoDoPerfil = deletarTreinoDoPerfil;
+window.toggleDiaHorarioInput = toggleDiaHorarioInput;
+window.switchAlunoModalTab = switchAlunoModalTab;
+window.addExerciciosRow = addExerciciosRow;
+window.removerLinhaExercicio = removerLinhaExercicio;
+window.checkRowWeightHistory = checkRowWeightHistory;
+window.autoCheckPreviousWeight = autoCheckPreviousWeight;

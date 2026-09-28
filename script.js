@@ -348,7 +348,7 @@ function renderStudentHeaderTabs() {
         const isCompleted = workout.concluido;
 
         return `
-            <button type="button" data-aluno-id="${workout.alunoId}" class="student-tab-btn flex items-center space-x-2.5 px-3.5 py-2 rounded-xl border transition shrink-0 cursor-pointer ${
+            <div data-aluno-id="${workout.alunoId}" class="student-tab-btn flex items-center space-x-2.5 px-3.5 py-2 rounded-xl border transition shrink-0 cursor-pointer ${
                 isSelected 
                 ? 'bg-white border-emerald-500 text-slate-900 shadow-md shadow-emerald-500/10' 
                 : 'bg-white/60 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-white'
@@ -361,7 +361,7 @@ function renderStudentHeaderTabs() {
                     <div class="text-xs font-bold leading-tight">${aluno.nome}</div>
                     <div class="text-[10px] text-slate-400 font-mono">${workout.horario}</div>
                 </div>
-            </button>
+            </div>
         `;
     }).join('');
 }
@@ -369,7 +369,6 @@ function renderStudentHeaderTabs() {
 document.addEventListener('DOMContentLoaded', () => {
     loadAppData();
 
-    // Delegação de eventos para as abas de alunos (resolve qualquer falha de clique/onclick)
     const tabsContainer = document.getElementById('studentsHeaderTabs');
     if (tabsContainer) {
         tabsContainer.addEventListener('click', (e) => {

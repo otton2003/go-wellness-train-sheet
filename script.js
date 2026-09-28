@@ -83,24 +83,19 @@ window.addEventListener('DOMContentLoaded', () => {
 
 async function loadAppData() {
     try {
-        // Busca todos os alunos (que já contêm a coluna 'treinos' em JSONB)
+        // Busca alunos
         const { data: alunosData, error: alunosError } = await supabaseClientInstance
             .from('alunos')
             .select('*');
 
         if (alunosError) throw alunosError;
 
-        // Extrai e consolida todos os treinos de dentro do JSON de cada aluno
-        let todosTreinos = [];
-        if (alunosData) {
-            alunosData.forEach(aluno => {
-                if (aluno.treinos && typeof aluno.treinos === 'object') {
-                    // Se estiver guardado como um objeto ou array de treinos
-                    const treinosAluno = Array.isArray(aluno.treinos) ? aluno.treinos : Object.values(aluno.treinos);
-                    todosTreinos = todosTreinos.concat(treinosAluno);
-                }
-            });
-        }
+        // Busca treinos diretamente da tabela 'treinos'
+        const { data: treinosData, error: treinosError } = await supabaseClientInstance
+            .from('treinos')
+            .select('*');
+
+        if (treinosError) throw treinosError;
 
         appData = {
             personal: {
@@ -108,7 +103,7 @@ async function loadAppData() {
                 titulo: "Studio & Performance"
             },
             alunos: alunosData || [],
-            treinos: todosTreinos
+            treinos: treinosData || []
         };
 
     } catch (err) {
@@ -120,21 +115,27 @@ async function loadAppData() {
 }
 
 async function persistirTreinosAlunoNoSupabase(alunoId) {
-    const aluno = appData.alunos.find(a => a.id === alunoId);
-    if (!aluno) return;
-
-    // Filtra todos os treinos pertencentes a este aluno
+    // Filtra todos os treinos pertencentes a este aluno na memória
     const treinosDoAluno = appData.treinos.filter(t => t.alunoId === alunoId);
-    aluno.treinos = treinosDoAluno;
+    
+    // Como a tabela 'treinos' é relacional, salvamos cada treino dela no Supabase
+    for (const treino of treinosDoAluno) {
+        const { error } = await supabaseClientInstance
+            .from('treinos')
+            .upsert({
+                id: treino.id,
+                alunoId: treino.alunoId,
+                data: treino.data,
+                horario: treino.horario,
+                tipo: treino.tipo,
+                concluido: treino.concluido,
+                exercicios: treino.exercicios
+            });
 
-    const { error } = await supabaseClientInstance
-        .from('alunos')
-        .update({ treinos: treinosDoAluno })
-        .eq('id', alunoId);
-
-    if (error) {
-        console.error("Erro ao salvar treinos no Supabase:", error.message);
-        showToast("Erro ao sincronizar treino com o banco.", "error");
+        if (error) {
+            console.error("Erro ao salvar treino no Supabase:", error.message);
+            showToast("Erro ao sincronizar treino com o banco.", "error");
+        }
     }
 }
 
@@ -877,13 +878,25 @@ async function handleSalvarTreinoDoPerfil(event) {
     showToast('Treino atribuído com sucesso!', 'success');
 }
 
-async function deletarTreinoDoPerfil(workoutId) {
+async function deletarTreino(workoutId) {
     if (confirm("Deseja excluir este treino?")) {
+        const workout = appData.treinos.find(t => t.id === workoutId);
+        if (!workout) return;
+
         appData.treinos = appData.treinos.filter(t => t.id !== workoutId);
-        await saveAppData();
-        renderPerfilTreinosList();
+
+        // Apaga do Supabase na tabela 'treinos'
+        const { error } = await supabaseClientInstance
+            .from('treinos')
+            .delete()
+            .eq('id', workoutId);
+
+        if (error) {
+            console.error("Erro ao excluir treino no Supabase:", error.message);
+        }
+
         renderAll();
-        showToast('Treino excluído com sucesso!', 'success');
+        showToast("Treino excluído com sucesso!", "success");
     }
 }
 

@@ -354,16 +354,16 @@ function renderStudentHeaderTabs() {
         const isCompleted = workout.concluido;
 
         return `
-            <button onclick="selectStudentTab('${workout.alunoId}')" class="flex items-center space-x-2.5 px-3.5 py-2 rounded-xl border transition shrink-0 ${
+            <button type="button" onclick="window.selectStudentTab('${workout.alunoId}')" class="flex items-center space-x-2.5 px-3.5 py-2 rounded-xl border transition shrink-0 cursor-pointer ${
                 isSelected 
                 ? 'bg-white border-emerald-500 text-slate-900 shadow-md shadow-emerald-500/10' 
                 : 'bg-white/60 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-white'
             }">
-                <div class="relative">
+                <div class="relative pointer-events-none">
                     <img src="${aluno.foto}" alt="${aluno.nome}" class="w-8 h-8 rounded-lg object-cover border border-slate-200">
                     <span class="w-2.5 h-2.5 rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-amber-500'} absolute -top-1 -right-1 border border-white"></span>
                 </div>
-                <div class="text-left">
+                <div class="text-left pointer-events-none">
                     <div class="text-xs font-bold leading-tight">${aluno.nome}</div>
                     <div class="text-[10px] text-slate-400 font-mono">${workout.horario}</div>
                 </div>
@@ -371,6 +371,12 @@ function renderStudentHeaderTabs() {
         `;
     }).join('');
 }
+
+window.selectStudentTab = function(alunoId) {
+    selectedStudentIdForDay = alunoId;
+    renderStudentHeaderTabs();
+    renderSelectedStudentWorkout();
+};
 
 function selectStudentTab(alunoId) {
     selectedStudentIdForDay = alunoId;

@@ -1,6 +1,6 @@
 const STORAGE_KEY = 'GO_WELLNESS_APP_DATA_V3_3';
 
-// Credenciais do Supabase (Verifique se o URL do projeto está exatamente correto no painel do Supabase)
+// Credenciais do Supabase
 const SUPABASE_URL = 'https://hjasprgfbfuhqsqyoole.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_XKW3jAwAWsdzqK-rx6XzgQ_MTpQycvA';
 
@@ -31,12 +31,11 @@ async function testarSupabase() {
         console.error("❌ Cliente Supabase não inicializado.");
         return;
     }
-    console.log("A testar conexão com o Supabase...");
     const { data, error } = await supabaseClientInstance.from('alunos').select('*').limit(1);
     if (error) {
         console.error("❌ Erro na conexão:", error.message);
     } else {
-        console.log("✅ Conexão bem-sucedida! Dados encontrados:", data);
+        console.log("✅ Conexão bem-sucedida com o Supabase!");
     }
 }
 testarSupabase();
@@ -82,30 +81,25 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 async function loadAppData() {
-    // 1. Tenta carregar primeiro do localStorage para garantir velocidade instantânea (Zero tela em branco)
+    // 1. Tenta carregar primeiro do localStorage para velocidade instantânea
     try {
         const cached = localStorage.getItem(STORAGE_KEY);
         if (cached) {
             appData = JSON.parse(cached);
-            renderAll(); // Renderiza imediatamente com os dados locais
+            renderAll();
         }
     } catch (e) {
         console.warn("Aviso ao carregar cache local:", e);
     }
 
-    // Se ainda não tivermos appData, inicializa com o padrão
     if (!appData) {
         appData = getDefaultData();
     }
 
-    // 2. Sincroniza em segundo plano com o Supabase sem bloquear a UI
-    if (!supabaseClientInstance) {
-        console.warn("Supabase não inicializado. A usar apenas dados locais.");
-        return;
-    }
+    if (!supabaseClientInstance) return;
 
+    // 2. Sincroniza em segundo plano com o Supabase (tabela 'alunos' e tabela 'treinos')
     try {
-        // Busca alunos e treinos em paralelo para maior velocidade
         const [alunosRes, treinosRes] = await Promise.all([
             supabaseClientInstance.from('alunos').select('*'),
             supabaseClientInstance.from('treinos').select('*')
@@ -114,44 +108,41 @@ async function loadAppData() {
         if (alunosRes.error) throw alunosRes.error;
         if (treinosRes.error) throw treinosRes.error;
 
-        // Atualiza com os dados frescos do Supabase
         appData.alunos = alunosRes.data || [];
         appData.treinos = treinosRes.data || [];
 
-        // Guarda no localStorage atualizado
         await saveAppData();
-        
-        // Re-renderiza com os dados mais recentes do servidor
         renderAll();
-
     } catch (err) {
-        console.warn("Aviso: Falha temporária ao sincronizar com o Supabase. A usar dados locais.", err.message);
-        // Não exibe toast de erro invasivo para evitar alarme falso em quedas rápidas de internet
+        console.warn("Falha temporária ao sincronizar com o Supabase. A usar dados locais.", err.message);
+    }
+}
+
+// Salva um treino individual diretamente na tabela 'treinos' do Supabase
+async function salvarTreinoIndividualNoSupabase(workout) {
+    if (!workout || !supabaseClientInstance) return;
+    const { error } = await supabaseClientInstance
+        .from('treinos')
+        .upsert({
+            id: workout.id,
+            alunoId: workout.alunoId,
+            data: workout.data,
+            horario: workout.horario,
+            tipo: workout.tipo,
+            concluido: workout.concluido,
+            exercicios: workout.exercicios
+        });
+
+    if (error) {
+        console.error("Erro ao sincronizar treino no Supabase:", error.message);
+        showToast("Erro ao salvar alteração no servidor.", "error");
     }
 }
 
 async function persistirTreinosAlunoNoSupabase(alunoId) {
-    // Filtra todos os treinos pertencentes a este aluno na memória
     const treinosDoAluno = appData.treinos.filter(t => t.alunoId === alunoId);
-    
-    // Como a tabela 'treinos' é relacional, salvamos cada treino dela no Supabase
     for (const treino of treinosDoAluno) {
-        const { error } = await supabaseClientInstance
-            .from('treinos')
-            .upsert({
-                id: treino.id,
-                alunoId: treino.alunoId,
-                data: treino.data,
-                horario: treino.horario,
-                tipo: treino.tipo,
-                concluido: treino.concluido,
-                exercicios: treino.exercicios
-            });
-
-        if (error) {
-            console.error("Erro ao salvar treino no Supabase:", error.message);
-            showToast("Erro ao sincronizar treino com o banco.", "error");
-        }
+        await salvarTreinoIndividualNoSupabase(treino);
     }
 }
 
@@ -159,8 +150,7 @@ async function saveAppData() {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
     } catch (err) {
-        console.error("Erro ao salvar dados:", err);
-        showToast("Erro ao salvar os dados no navegador.", "error");
+        console.error("Erro ao salvar dados locais:", err);
     }
 }
 
@@ -487,6 +477,7 @@ async function toggleWorkoutComplete(workoutId) {
         workout.concluido = !workout.concluido;
         workout.exercicios.forEach(e => e.concluido = workout.concluido);
         await saveAppData();
+        await salvarTreinoIndividualNoSupabase(workout);
         renderAll();
         showToast("Status do treino atualizado!", "success");
     }
@@ -500,6 +491,7 @@ async function toggleExerciseCheck(workoutId, exercicioId) {
             ex.concluido = !ex.concluido;
             workout.concluido = workout.exercicios.every(e => e.concluido);
             await saveAppData();
+            await salvarTreinoIndividualNoSupabase(workout);
             renderAll();
         }
     }
@@ -512,6 +504,7 @@ async function updateCarga(workoutId, exercicioId, delta) {
         if (ex) {
             ex.cargaKg = Math.max(0, ex.cargaKg + delta);
             await saveAppData();
+            await salvarTreinoIndividualNoSupabase(workout);
             renderSelectedStudentWorkout();
         }
     }
@@ -522,6 +515,7 @@ async function removeExercicioFromWorkout(workoutId, exercicioId) {
     if (workout && confirm("Deseja remover este exercício?")) {
         workout.exercicios = workout.exercicios.filter(e => e.id !== exercicioId);
         await saveAppData();
+        await salvarTreinoIndividualNoSupabase(workout);
         renderSelectedStudentWorkout();
         showToast("Exercício removido com sucesso!", "success");
     }
@@ -578,6 +572,7 @@ async function handleSalvarExercicioRapido(event) {
         };
         workout.exercicios.push(novoExercicio);
         await saveAppData();
+        await salvarTreinoIndividualNoSupabase(workout);
         closeModal('modalAddExercioRapido');
         renderSelectedStudentWorkout();
         showToast("Exercício adicionado com sucesso!", "success");
@@ -588,6 +583,16 @@ async function deletarTreino(workoutId) {
     if (confirm("Deseja excluir este treino?")) {
         appData.treinos = appData.treinos.filter(t => t.id !== workoutId);
         await saveAppData();
+
+        const { error } = await supabaseClientInstance
+            .from('treinos')
+            .delete()
+            .eq('id', workoutId);
+
+        if (error) {
+            console.error("Erro ao excluir treino no Supabase:", error.message);
+        }
+
         renderAll();
         showToast("Treino excluído com sucesso!", "success");
     }
@@ -788,6 +793,19 @@ function renderPerfilTreinosList() {
     }).join('');
 }
 
+async function deletarTreinoDoPerfil(workoutId) {
+    if (confirm("Deseja excluir este treino?")) {
+        appData.treinos = appData.treinos.filter(t => t.id !== workoutId);
+        await saveAppData();
+
+        await supabaseClientInstance.from('treinos').delete().eq('id', workoutId);
+
+        renderPerfilTreinosList();
+        renderAll();
+        showToast('Treino excluído com sucesso!', 'success');
+    }
+}
+
 function abrirDetalhesTreinoHistorico(workoutId) {
     const treino = appData.treinos.find(t => t.id === workoutId);
     if (!treino) return;
@@ -882,7 +900,8 @@ async function handleSalvarTreinoDoPerfil(event) {
     };
 
     appData.treinos.push(novoTreino);
-    await persistirTreinosAlunoNoSupabase(currentEditingAlunoId);
+    await saveAppData();
+    await salvarTreinoIndividualNoSupabase(novoTreino);
 
     document.getElementById('formCriarTreinoNoPerfil').reset();
     document.getElementById('perfilExerciciosBuilderList').innerHTML = '';
@@ -894,33 +913,15 @@ async function handleSalvarTreinoDoPerfil(event) {
     showToast('Treino atribuído com sucesso!', 'success');
 }
 
-async function deletarTreino(workoutId) {
-    if (confirm("Deseja excluir este treino?")) {
-        const workout = appData.treinos.find(t => t.id === workoutId);
-        if (!workout) return;
-
-        appData.treinos = appData.treinos.filter(t => t.id !== workoutId);
-
-        // Apaga do Supabase na tabela 'treinos'
-        const { error } = await supabaseClientInstance
-            .from('treinos')
-            .delete()
-            .eq('id', workoutId);
-
-        if (error) {
-            console.error("Erro ao excluir treino no Supabase:", error.message);
-        }
-
-        renderAll();
-        showToast("Treino excluído com sucesso!", "success");
-    }
-}
-
 async function deletarAluno(alunoId) {
     if (confirm("Deseja excluir este aluno e seus históricos associados?")) {
         appData.alunos = appData.alunos.filter(a => a.id !== alunoId);
         appData.treinos = appData.treinos.filter(t => t.alunoId !== alunoId);
         await saveAppData();
+
+        await supabaseClientInstance.from('alunos').delete().eq('id', alunoId);
+        await supabaseClientInstance.from('treinos').delete().eq('alunoId', alunoId);
+
         renderAll();
         showToast('Aluno excluído com sucesso!', 'success');
     }
@@ -1054,7 +1055,8 @@ async function handleSalvarTreino(event) {
     };
 
     appData.treinos.push(novoTreino);
-    await persistirTreinosAlunoNoSupabase(alunoId);
+    await saveAppData();
+    await salvarTreinoIndividualNoSupabase(novoTreino);
 
     document.getElementById('exerciciosBuilderList').innerHTML = '';
     closeModal('modalNovoTreino');
@@ -1080,7 +1082,6 @@ async function handleSalvarAluno(event) {
         agendaRecorrente.push({ diaSemana, horario });
     });
 
-    // Gerar um ID único para evitar o erro de NOT NULL na tabela
     const novoAluno = {
         id: 'a_' + Date.now(),
         nome,
@@ -1105,10 +1106,11 @@ async function handleSalvarAluno(event) {
         appData.alunos.push(data[0]);
     }
 
+    await saveAppData();
     closeModal('modalNovoAluno');
     document.getElementById('formNovoAluno').reset();
     renderAll();
-    showToast('Aluno salvo no Supabase com sucesso!', 'success');
+    showToast('Aluno salvo com sucesso!', 'success');
 }
 
 function showToast(message, type = 'success') {

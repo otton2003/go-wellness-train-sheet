@@ -27,10 +27,7 @@ const diasSemanaMap = {
 };
 
 async function testarSupabase() {
-    if (!supabaseClientInstance) {
-        console.error("❌ Cliente Supabase não inicializado.");
-        return;
-    }
+    if (!supabaseClientInstance) return;
     const { data, error } = await supabaseClientInstance.from('alunos').select('*').limit(1);
     if (error) {
         console.error("❌ Erro na conexão:", error.message);
@@ -81,7 +78,6 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 async function loadAppData() {
-    // 1. Tenta carregar primeiro do localStorage para velocidade instantânea
     try {
         const cached = localStorage.getItem(STORAGE_KEY);
         if (cached) {
@@ -98,7 +94,6 @@ async function loadAppData() {
 
     if (!supabaseClientInstance) return;
 
-    // 2. Sincroniza em segundo plano com o Supabase (tabela 'alunos' e tabela 'treinos')
     try {
         const [alunosRes, treinosRes] = await Promise.all([
             supabaseClientInstance.from('alunos').select('*'),
@@ -118,7 +113,6 @@ async function loadAppData() {
     }
 }
 
-// Salva um treino individual diretamente na tabela 'treinos' do Supabase
 async function salvarTreinoIndividualNoSupabase(workout) {
     if (!workout || !supabaseClientInstance) return;
     const { error } = await supabaseClientInstance
@@ -377,12 +371,6 @@ window.selectStudentTab = function(alunoId) {
     renderStudentHeaderTabs();
     renderSelectedStudentWorkout();
 };
-
-function selectStudentTab(alunoId) {
-    selectedStudentIdForDay = alunoId;
-    renderStudentHeaderTabs();
-    renderSelectedStudentWorkout();
-}
 
 function renderSelectedStudentWorkout() {
     const container = document.getElementById('workoutDetailContent');
@@ -1155,37 +1143,8 @@ window.shiftSelectedDate = function(deltaDays) {
     renderAll();
 };
 
-// ==========================================
-// EXPOSIÇÃO GLOBAL DE FUNÇÕES PARA OS BOTÕES HTML
-// ==========================================
-window.shiftSelectedDate = function(deltaDays) {
-    const [y, m, d] = currentDateSelected.split('-').map(Number);
-    const dateObj = new Date(y, m - 1, d);
-    dateObj.setDate(dateObj.getDate() + deltaDays);
-    currentDateSelected = formatDateToKey(dateObj);
-    selectedStudentIdForDay = null;
-    renderAll();
-};
-
 window.selectStudentTab = function(alunoId) {
     selectedStudentIdForDay = alunoId;
     renderStudentHeaderTabs();
     renderSelectedStudentWorkout();
 };
-
-window.toggleWorkoutComplete = toggleWorkoutComplete;
-window.toggleExerciseCheck = toggleExerciseCheck;
-window.updateCarga = updateCarga;
-window.removeExercicioFromWorkout = removeExercicioFromWorkout;
-window.openModalAddExercicioRapido = openModalAddExercicioRapido;
-window.deletarTreino = deletarTreino;
-window.openEditarAluno = openEditarAluno;
-window.deletarAluno = deletarAluno;
-window.abrirDetalhesTreinoHistorico = abrirDetalhesTreinoHistorico;
-window.deletarTreinoDoPerfil = deletarTreinoDoPerfil;
-window.toggleDiaHorarioInput = toggleDiaHorarioInput;
-window.switchAlunoModalTab = switchAlunoModalTab;
-window.addExerciciosRow = addExerciciosRow;
-window.removerLinhaExercicio = removerLinhaExercicio;
-window.checkRowWeightHistory = checkRowWeightHistory;
-window.autoCheckPreviousWeight = autoCheckPreviousWeight;

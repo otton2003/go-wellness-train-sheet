@@ -348,7 +348,7 @@ function renderStudentHeaderTabs() {
         const isCompleted = workout.concluido;
 
         return `
-            <button type="button" onclick="window.selectStudentTab('${workout.alunoId}')" class="flex items-center space-x-2.5 px-3.5 py-2 rounded-xl border transition shrink-0 cursor-pointer ${
+            <button type="button" data-aluno-id="${workout.alunoId}" class="student-tab-btn flex items-center space-x-2.5 px-3.5 py-2 rounded-xl border transition shrink-0 cursor-pointer ${
                 isSelected 
                 ? 'bg-white border-emerald-500 text-slate-900 shadow-md shadow-emerald-500/10' 
                 : 'bg-white/60 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-white'
@@ -365,6 +365,26 @@ function renderStudentHeaderTabs() {
         `;
     }).join('');
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadAppData();
+
+    // Delegação de eventos para as abas de alunos (resolve qualquer falha de clique/onclick)
+    const tabsContainer = document.getElementById('studentsHeaderTabs');
+    if (tabsContainer) {
+        tabsContainer.addEventListener('click', (e) => {
+            const btn = e.target.closest('.student-tab-btn');
+            if (btn) {
+                const alunoId = btn.getAttribute('data-aluno-id');
+                if (alunoId) {
+                    selectedStudentIdForDay = alunoId;
+                    renderStudentHeaderTabs();
+                    renderSelectedStudentWorkout();
+                }
+            }
+        });
+    }
+});
 
 window.selectStudentTab = function(alunoId) {
     selectedStudentIdForDay = alunoId;
